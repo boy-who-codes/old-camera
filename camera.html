@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Polaroid Camera</title>
+  <style>
+    /* Styles for camera preview and polaroid frame */
+    #cameraPreview {
+      width: 100%;
+      max-width: 500px;
+      margin: 0 auto;
+      border: 2px solid #ccc;
+      border-radius: 5px;
+    }
+    #polaroidFrame {
+      display: none;
+      width: 100%;
+      max-width: 500px;
+      margin: 20px auto;
+    }
+    .filter-controls {
+      margin-top: 10px;
+    }
+    .filter-controls label {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <video id="cameraPreview" autoplay></video>
+  <button id="captureButton">Capture</button>
+  <div class="filter-controls">
+    <label for="flashLevel">Flash Level:</label>
+    <input type="range" id="flashLevel" min="0" max="100" value="0">
+    <label for="exposureLevel">Exposure Level:</label>
+    <input type="range" id="exposureLevel" min="0" max="100" value="50">
+    <label for="shutterSpeed">Shutter Speed:</label>
+    <input type="range" id="shutterSpeed" min="0" max="100" value="50">
+  </div>
+  <canvas id="polaroidFrame"></canvas>
+
+  <script>
+    const cameraPreview = document.getElementById('cameraPreview');
+    const captureButton = document.getElementById('captureButton');
+    const polaroidFrame = document.getElementById('polaroidFrame');
+    const flashLevelInput = document.getElementById('flashLevel');
+    const exposureLevelInput = document.getElementById('exposureLevel');
+    const shutterSpeedInput = document.getElementById('shutterSpeed');
+    let stream = null;
+
+    // Access the user's camera
+    async function initCamera() {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        cameraPreview.srcObject = stream;
+      } catch (err) {
+        console.error('Error accessing camera:', err);
+      }
+    }
+
+    // Capture image from camera
+    function captureImage() {
+      const context = polaroidFrame.getContext('2d');
+      const width = cameraPreview.videoWidth;
+      const height = cameraPreview.videoHeight;
+      polaroidFrame.width = width;
+      polaroidFrame.height = height;
+      context.drawImage(cameraPreview, 0, 0, width, height);
+      polaroidFrame.style.display = 'block';
+      cameraPreview.style.display = 'none';
+      captureButton.style.display = 'none';
+      // Apply polaroid effect (simple border)
+      applyPolaroidEffect();
+      // Apply custom filter
+      applyCustomFilter();
+    }
+
+    // Apply polaroid effect to captured image
+    function applyPolaroidEffect() {
+      polaroidFrame.style.border = '20px solid white';
+      polaroidFrame.style.boxShadow = '0px 10px 20px rgba(0, 0, 0, 0.3)';
+    }
+
+    // Apply custom filter based on user input
+    function applyCustomFilter() {
+      const context = polaroidFrame.getContext('2d');
+      const imageData = context.getImageData(0, 0, polaroidFrame.width, polaroidFrame.height);
+      const data = imageData.data;
+      const flashLevel = flashLevelInput.value / 100;
+      const exposureLevel = exposureLevelInput.value / 100;
+      const shutterSpeed = shutterSpeedInput.value / 100;
+      for (let i = 0; i < data.length; i += 4) {
+        // Example: Adjust brightness based on exposure level
+        data[i] *= exposureLevel;
+        data[i + 1] *= exposureLevel;
+        data[i + 2] *= exposureLevel;
+        // Example: Add flash effect
+        data[i] += 255 * flashLevel;
+        data[i + 1] += 255 * flashLevel;
+        data[i + 2] += 255 * flashLevel;
+        // Example: Adjust shutter speed
+        data[i] *= shutterSpeed;
+        data[i + 1] *= shutterSpeed;
+        data[i + 2] *= shutterSpeed;
+      }
+      context.putImageData(imageData, 0, 0);
+    }
+function downloadImage(url) {
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `polaroid_${Date.now()}.jpg`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+    // Event listener for capture button
+    captureButton.addEventListener('click', captureImage);
+
+    // Initialize camera when the page loads
+    initCamera();
+
+  </script>
+</body>
+</html>
